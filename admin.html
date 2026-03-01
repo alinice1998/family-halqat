@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#042f2e">
+    <meta name="description" content="تدارس - لوحة تحكم ولي الأمر">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>تدارس - لوحة التحكم</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-toast-container" id="toastContainer"></div>
+
+    <div class="app-shell">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="header-user">
+                    <div class="user-avatar" id="userAvatar">م</div>
+                    <div class="user-info">
+                        <h2 id="userName">ولي الأمر</h2>
+                        <span>ولي الأمر</span>
+                    </div>
+                </div>
+                <div style="position: relative;">
+                    <button class="btn-logout" id="dropdownBtn" onclick="toggleDropdown(event)">⚙️ خيارات</button>
+                    <div id="userDropdown" class="header-dropdown-content">
+                        <button onclick="showChangePasswordModal()">🔑 تغيير كلمة المرور</button>
+                        <button class="danger-item" onclick="logout()">🚪 تسجيل الخروج</button>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-row" id="headerStats">
+                <div class="stat-pill"><span class="number" id="statStudents">0</span><span class="label">الأبناء</span>
+                </div>
+                <div class="stat-pill"><span class="number" id="statPending">0</span><span class="label">بانتظار</span>
+                </div>
+                <div class="stat-pill"><span class="number" id="statWaiting">0</span><span class="label">للتسميع</span>
+                </div>
+                <div class="stat-pill"><span class="number" id="statToday">0</span><span class="label">اليوم</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- PWA Banner -->
+        <div class="content-area">
+            <div class="pwa-banner" id="pwaBanner">
+                <p>📲 ثبّت التطبيق على جهازك للوصول السريع!</p>
+                <button class="btn-install" onclick="installPWA()">تثبيت</button>
+                <button class="btn-close-banner" onclick="closePwaBanner()">✕</button>
+            </div>
+
+            <!-- Page: Dashboard -->
+            <div class="page active" id="pageDashboard">
+                <h3 class="section-title"><span class="icon">📋</span> الواجبات بانتظار التسميع</h3>
+                <div id="waitingReviewList"></div>
+
+                <h3 class="section-title" style="margin-top:24px"><span class="icon">⏳</span> الواجبات الحالية</h3>
+                <div id="pendingList"></div>
+
+                <h3 class="section-title" style="margin-top:24px"><span class="icon">📝</span> آخر الأنشطة</h3>
+                <div id="activityList"></div>
+            </div>
+
+            <!-- Page: Add Assignment -->
+            <div class="page" id="pageAssign">
+                <h3 class="section-title"><span class="icon">📝</span> إسناد واجب جديد</h3>
+                <div class="glass-card">
+                    <form id="assignForm">
+                        <div class="form-group">
+                            <label class="form-label">اختر الابن</label>
+                            <select class="form-control form-select" id="assignStudent" required>
+                                <option value="">-- اختر --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">السورة</label>
+                            <input type="text" class="form-control" id="assignSurahSearch"
+                                placeholder="ابحث عن السورة..." oninput="filterSurahs(this.value)">
+                            <div class="surah-grid" id="surahGrid" style="margin-top:8px;"></div>
+                            <input type="hidden" id="assignSurah" required>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="form-group">
+                                <label class="form-label">من آية</label>
+                                <input type="number" class="form-control" id="assignFrom" value="1" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">إلى آية</label>
+                                <input type="number" class="form-control" id="assignTo" value="7" min="1" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">نوع الواجب</label>
+                            <div style="display:flex; gap:8px;">
+                                <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                                    <input type="radio" name="assignType" value="حفظ" checked style="display:none;">
+                                    🧠 حفظ
+                                </label>
+                                <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                                    <input type="radio" name="assignType" value="تلاوة" style="display:none;">
+                                    📖 تلاوة
+                                </label>
+                                <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                                    <input type="radio" name="assignType" value="مراجعة" style="display:none;">
+                                    🔄 مراجعة
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">تاريخ التسليم (اختياري)</label>
+                            <input type="date" class="form-control" id="assignDue">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ملاحظات (اختياري)</label>
+                            <textarea class="form-control" id="assignNotes" rows="2"
+                                placeholder="ملاحظات للابن..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
+                            ✅ إسناد الواجب
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Page: Students -->
+            <div class="page" id="pageStudents">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                    <h3 class="section-title" style="margin:0;"><span class="icon">👨‍👧‍👦</span> الأبناء</h3>
+                    <button class="btn btn-primary btn-sm" onclick="showAddStudentModal()">+ إضافة</button>
+                </div>
+                <div id="studentsList"></div>
+            </div>
+
+            <!-- Page: Leaderboard -->
+            <div class="page" id="pageLeaderboard">
+                <h3 class="section-title"><span class="icon">🏆</span> لوحة الصدارة</h3>
+                <div id="leaderboardList"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchPage('Dashboard', this)" data-page="pageDashboard">
+                <span class="nav-icon">🏠</span>
+                <span>الرئيسية</span>
+                <span class="badge" id="badgeDashboard" style="display:none;">0</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('Assign', this)" data-page="pageAssign">
+                <span class="nav-icon">📝</span>
+                <span>واجب جديد</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('Students', this)" data-page="pageStudents">
+                <span class="nav-icon">👨‍👧‍👦</span>
+                <span>الأبناء</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('Leaderboard', this)" data-page="pageLeaderboard">
+                <span class="nav-icon">🏆</span>
+                <span>الصدارة</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Modal: Add Student -->
+    <div class="modal-overlay" id="addStudentModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title">إضافة ابن جديد</h3>
+            <form id="addStudentForm">
+                <div class="form-group">
+                    <label class="form-label">اسم الابن</label>
+                    <input type="text" class="form-control" id="studentName" placeholder="مثال: أحمد" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">اسم المستخدم (للدخول)</label>
+                    <input type="text" class="form-control" id="studentUsername" placeholder="مثال: ahmed" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-control" id="studentPassword" placeholder="4 أحرف على الأقل"
+                        required minlength="4">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">لون الشخصية</label>
+                    <div class="color-grid" id="colorGrid"></div>
+                    <input type="hidden" id="studentColor" value="#0d9488">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">✅ إضافة</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('addStudentModal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Student -->
+    <div class="modal-overlay" id="editStudentModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title">تعديل بيانات الابن</h3>
+            <form id="editStudentForm">
+                <input type="hidden" id="editStudentId">
+                <div class="form-group">
+                    <label class="form-label">اسم الابن</label>
+                    <input type="text" class="form-control" id="editStudentName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">اسم المستخدم (للدخول)</label>
+                    <input type="text" class="form-control" id="editStudentUsername" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">كلمة المرور (اتركها فارغة للاحتفاظ بالقديمة)</label>
+                    <input type="password" class="form-control" id="editStudentPassword"
+                        placeholder="كلمة مرور جديدة...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">لون الشخصية</label>
+                    <div class="color-grid" id="editColorGrid"></div>
+                    <input type="hidden" id="editStudentColor">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">💾 حفظ التعديلات</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('editStudentModal')">إلغاء</button>
+                </div>
+                <div style="margin-top:12px;">
+                    <button type="button" class="btn btn-danger btn-block" onclick="deleteStudent()">🗑️ حذف الابن
+                        بالكامل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Review Assignment -->
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title">تسميع / مراجعة</h3>
+            <div id="reviewDetails"></div>
+            <div class="form-group" style="margin-top:16px;">
+                <label class="form-label">النقاط المُعطاة</label>
+                <input type="number" class="form-control" id="reviewPoints" value="10" min="1" max="100">
+            </div>
+            <input type="hidden" id="reviewAssignmentId">
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button class="btn btn-success" style="flex:1;" onclick="submitReview()">✅ تم التسميع</button>
+                <button class="btn btn-outline" style="flex:1;" onclick="closeModal('reviewModal')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Assignment -->
+    <div class="modal-overlay" id="editAssignmentModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title">تعديل الواجب</h3>
+            <form id="editAssignmentForm">
+                <input type="hidden" id="editAssignmentId">
+                <div class="form-group">
+                    <label class="form-label">السورة</label>
+                    <input type="text" class="form-control" id="editAssignSurahSearch" placeholder="ابحث عن السورة..."
+                        oninput="filterSurahs(this.value, 'editSurahGrid')">
+                    <div class="surah-grid" id="editSurahGrid" style="margin-top:8px;"></div>
+                    <input type="hidden" id="editAssignSurah" required>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label class="form-label">من آية</label>
+                        <input type="number" class="form-control" id="editAssignFrom" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">إلى آية</label>
+                        <input type="number" class="form-control" id="editAssignTo" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">نوع الواجب</label>
+                    <div style="display:flex; gap:8px;">
+                        <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                            <input type="radio" name="editAssignType" value="حفظ" style="display:none;">
+                            🧠 حفظ
+                        </label>
+                        <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                            <input type="radio" name="editAssignType" value="تلاوة" style="display:none;">
+                            📖 تلاوة
+                        </label>
+                        <label class="btn btn-outline btn-sm" style="flex:1; cursor:pointer;">
+                            <input type="radio" name="editAssignType" value="مراجعة" style="display:none;">
+                            🔄 مراجعة
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">تاريخ التسليم (اختياري)</label>
+                    <input type="date" class="form-control" id="editAssignDue">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ملاحظات (اختياري)</label>
+                    <textarea class="form-control" id="editAssignNotes" rows="2"></textarea>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">💾 حفظ التعديلات</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('editAssignmentModal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Change Password -->
+    <div class="modal-overlay" id="changePasswordModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="modal-title">تغيير كلمة المرور</h3>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label class="form-label">كلمة المرور الحالية</label>
+                    <input type="password" class="form-control" id="oldPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">كلمة المرور الجديدة</label>
+                    <input type="password" class="form-control" id="newPassword" placeholder="4 أحرف كحد أدنى" required
+                        minlength="4">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">💾 حفظ</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('changePasswordModal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // ==================== سور القرآن ====================
+        const SURAHS = [
+            'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام', 'الأعراف', 'الأنفال',
+            'التوبة', 'يونس', 'هود', 'يوسف', 'الرعد', 'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف',
+            'مريم', 'طه', 'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء', 'النمل',
+            'القصص', 'العنكبوت', 'الروم', 'لقمان', 'السجدة', 'الأحزاب', 'سبأ', 'فاطر', 'يس',
+            'الصافات', 'ص', 'الزمر', 'غافر', 'فصلت', 'الشورى', 'الزخرف', 'الدخان', 'الجاثية',
+            'الأحقاف', 'محمد', 'الفتح', 'الحجرات', 'ق', 'الذاريات', 'الطور', 'النجم', 'القمر',
+            'الرحمن', 'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة', 'الصف', 'الجمعة',
+            'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك', 'القلم', 'الحاقة', 'المعارج',
+            'نوح', 'الجن', 'المزمل', 'المدثر', 'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات',
+            'عبس', 'التكوير', 'الإنفطار', 'المطففين', 'الإنشقاق', 'البروج', 'الطارق', 'الأعلى',
+            'الغاشية', 'الفجر', 'البلد', 'الشمس', 'الليل', 'الضحى', 'الشرح', 'التين', 'العلق',
+            'القدر', 'البينة', 'الزلزلة', 'العاديات', 'القارعة', 'التكاثر', 'العصر', 'الهمزة',
+            'الفيل', 'قريش', 'الماعون', 'الكوثر', 'الكافرون', 'النصر', 'المسد', 'الإخلاص', 'الفلق', 'الناس'
+        ];
+
+        const AVATAR_COLORS = [
+            '#0d9488', '#0891b2', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899',
+            '#f43f5e', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'
+        ];
+
+        let currentUser = null;
+        let selectedSurah = '';
+
+        // ==================== التهيئة ====================
+        (async function init() {
+            currentUser = JSON.parse(localStorage.getItem('tadarus_user'));
+            if (!currentUser || currentUser.role !== 'admin') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // تحديث الهيدر
+            document.getElementById('userName').textContent = 'ولي الأمر';
+            document.getElementById('userAvatar').textContent = 'و';
+            document.getElementById('userAvatar').style.background = currentUser.avatar_color;
+
+            // إنشاء شبكة السور
+            buildSurahGrid('surahGrid', 'assignSurahSearch', 'assignSurah', 'surah-option');
+            buildSurahGrid('editSurahGrid', 'editAssignSurahSearch', 'editAssignSurah', 'edit-surah-option');
+            buildColorGrid();
+            buildColorGrid('editColorGrid', 'editStudentColor');
+            setupTypeButtons('assignType');
+            setupTypeButtons('editAssignType');
+
+            // تحميل البيانات
+            await loadDashboard();
+            await loadStudentsList();
+
+            // تهيئة المزامنة
+            initSync();
+            updateOnlineStatus();
+        })();
+
+        // ==================== التنقل بين الصفحات ====================
+        function switchPage(name, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page' + name).classList.add('active');
+            btn.classList.add('active');
+
+            // تحديث البيانات عند التنقل
+            if (name === 'Dashboard') loadDashboard();
+            if (name === 'Students') loadStudentsList();
+            if (name === 'Leaderboard') loadLeaderboard();
+            if (name === 'Assign') loadStudentsDropdown();
+        }
+
+        // ==================== لوحة التحكم ====================
+        async function loadDashboard() {
+            try {
+                const [statsRes, assignRes] = await Promise.all([
+                    apiGet('get_stats'),
+                    apiGet('get_assignments')
+                ]);
+
+                if (statsRes.stats) {
+                    document.getElementById('statStudents').textContent = statsRes.stats.total_students;
+                    document.getElementById('statPending').textContent = statsRes.stats.pending_assignments;
+                    document.getElementById('statWaiting').textContent = statsRes.stats.waiting_review;
+                    document.getElementById('statToday').textContent = statsRes.stats.today_reviewed;
+
+                    // Badge
+                    const badge = document.getElementById('badgeDashboard');
+                    if (statsRes.stats.waiting_review > 0) {
+                        badge.textContent = statsRes.stats.waiting_review;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    // Activity log
+                    renderActivityLog(statsRes.stats.recent_activity || []);
+                }
+
+                if (assignRes.assignments) {
+                    const waiting = assignRes.assignments.filter(a => a.status === 'done');
+                    const pending = assignRes.assignments.filter(a => a.status === 'pending');
+                    renderAssignments('waitingReviewList', waiting, true);
+                    renderAssignments('pendingList', pending, false);
+                }
+            } catch (e) {
+                console.error('Dashboard load error:', e);
+            }
+        }
+
+        function renderAssignments(containerId, assignments, showReview) {
+            const container = document.getElementById(containerId);
+            if (!assignments.length) {
+                container.innerHTML = `<div class="empty-state"><div class="icon">✨</div><h3>لا توجد واجبات</h3><p>ممتاز! كل شيء مُنجز</p></div>`;
+                return;
+            }
+
+            container.innerHTML = assignments.map(a => `
+            <div class="glass-card assignment-card type-${a.type}">
+                <div class="assignment-header">
+                    <div>
+                        <div class="assignment-surah">سورة ${a.surah_name}</div>
+                        <div class="assignment-ayah">الآيات ${a.from_ayah} - ${a.to_ayah}</div>
+                    </div>
+                    <span class="assignment-type">${a.type}</span>
+                </div>
+                <div class="assignment-student">
+                    <div class="mini-avatar" style="background:${a.student_color}">${(a.student_name || '').charAt(0)}</div>
+                    <span style="font-size:0.9rem; font-weight:600;">${a.student_name}</span>
+                    <span class="status-badge status-${a.status}" style="margin-right:auto;">
+                        ${a.status === 'pending' ? '⏳ بانتظار' : a.status === 'done' ? '✋ للتسميع' : '✅ تم'}
+                    </span>
+                </div>
+                ${a.notes ? `<div class="assignment-meta">📝 ${a.notes}</div>` : ''}
+                <div class="assignment-actions">
+                    ${showReview ? `<button class="btn btn-success btn-sm" onclick="openReviewModal(${a.id}, '${a.student_name}', '${a.surah_name}', '${a.type}', ${a.from_ayah}, ${a.to_ayah})">✅ تسميع</button>` : ''}
+                    ${a.status === 'pending' ? `<button class="btn btn-outline btn-sm" onclick='openEditAssignmentModal(${JSON.stringify(a).replace(/'/g, "&#39;")})'>✏️</button>` : ''}
+                    <button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        function renderActivityLog(activities) {
+            const container = document.getElementById('activityList');
+            if (!activities.length) {
+                container.innerHTML = '<div class="empty-state"><p>لا توجد أنشطة بعد</p></div>';
+                return;
+            }
+            container.innerHTML = activities.map(a => `
+            <div class="glass-card" style="padding:12px 16px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.2rem;">${getActionIcon(a.action)}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.85rem; font-weight:600;">${a.details || a.action}</div>
+                    <div style="font-size:0.75rem; color:var(--text-light);">${formatTime(a.created_at)}</div>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        function getActionIcon(action) {
+            const icons = { 'إضافة ابن': '👤', 'إسناد واجب': '📝', 'إنجاز واجب': '✅', 'تسميع/مراجعة': '🎯' };
+            return icons[action] || '📌';
+        }
+
+        // ==================== إدارة الطلاب ====================
+        async function loadStudentsList() {
+            try {
+                const data = await apiGet('get_students');
+                if (!data.students) return;
+
+                const container = document.getElementById('studentsList');
+                if (!data.students.length) {
+                    container.innerHTML = `<div class="empty-state"><div class="icon">👨‍👧‍👦</div><h3>لا يوجد أبناء</h3><p>اضغط "إضافة" لإضافة أول ابن</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = data.students.map(s => `
+                <div class="glass-card">
+                    <div class="student-card">
+                        <div class="student-avatar" style="background:${s.avatar_color}">${s.name.charAt(0)}</div>
+                        <div class="student-info">
+                            <h3>${s.name}</h3>
+                            <div class="meta">
+                                @${s.username} · 
+                                ⏳ ${s.stats?.pending || 0} بانتظار · 
+                                ✅ ${s.stats?.reviewed || 0} مُنجز
+                            </div>
+                        </div>
+                        <div class="student-points">⭐ ${s.points}</div>
+                        <button class="btn btn-outline btn-sm" style="padding:4px 8px; margin-right:8px;" onclick='openEditStudentModal(${JSON.stringify(s).replace(/'/g, "&#39;")})'>✏️</button>
+                    </div>
+                    ${s.streak_days > 0 ? `<div style="font-size:0.8rem; color:var(--warning); margin-top:8px;">🔥 سلسلة ${s.streak_days} يوم متواصل</div>` : ''}
+                </div>
+            `).join('');
+            } catch (e) {
+                console.error('Students load error:', e);
+            }
+        }
+
+        async function loadStudentsDropdown() {
+            try {
+                const data = await apiGet('get_students');
+                if (!data.students) return;
+                const select = document.getElementById('assignStudent');
+                select.innerHTML = '<option value="">-- اختر الابن --</option>' +
+                    data.students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            } catch (e) { }
+        }
+
+        function showAddStudentModal() {
+            document.getElementById('addStudentForm').reset();
+            document.getElementById('addStudentModal').classList.add('show');
+        }
+
+        // Add student form
+        document.getElementById('addStudentForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                const data = await apiPost('add_student', {
+                    name: document.getElementById('studentName').value.trim(),
+                    username: document.getElementById('studentUsername').value.trim(),
+                    password: document.getElementById('studentPassword').value,
+                    avatar_color: document.getElementById('studentColor').value
+                });
+                if (data.success) {
+                    showToast('تمت إضافة الابن بنجاح', 'success');
+                    closeModal('addStudentModal');
+                    loadStudentsList();
+                    loadDashboard();
+                    broadcastSync('student_added');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        });
+
+        // Edit student
+        function openEditStudentModal(student) {
+            document.getElementById('editStudentId').value = student.id;
+            document.getElementById('editStudentName').value = student.name;
+            document.getElementById('editStudentUsername').value = student.username;
+            document.getElementById('editStudentPassword').value = '';
+            document.getElementById('editStudentColor').value = student.avatar_color;
+
+            // Highlight correct color
+            document.querySelectorAll('#editColorGrid .color-option').forEach(e => {
+                e.classList.toggle('selected', e.style.backgroundColor === student.avatar_color || e.style.background === student.avatar_color);
+            });
+
+            document.getElementById('editStudentModal').classList.add('show');
+        }
+
+        document.getElementById('editStudentForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                const data = await apiPost('edit_student', {
+                    id: document.getElementById('editStudentId').value,
+                    name: document.getElementById('editStudentName').value.trim(),
+                    username: document.getElementById('editStudentUsername').value.trim(),
+                    password: document.getElementById('editStudentPassword').value,
+                    avatar_color: document.getElementById('editStudentColor').value
+                });
+                if (data.success) {
+                    showToast('تم حفظ التعديلات بنجاح', 'success');
+                    closeModal('editStudentModal');
+                    loadStudentsList();
+                    loadDashboard();
+                    broadcastSync('student_edited');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        });
+
+        async function deleteStudent() {
+            const id = document.getElementById('editStudentId').value;
+            if (!confirm('تحذير: هل أنت متأكد من حذف هذا الابن؟ سيتم حذف جميع واجباته وسجلاته نهائياً!')) return;
+            try {
+                const data = await apiPost('delete_student', { id });
+                if (data.success) {
+                    showToast('تم حذف الابن', 'info');
+                    closeModal('editStudentModal');
+                    loadStudentsList();
+                    loadDashboard();
+                    broadcastSync('student_deleted');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        }
+
+        // ==================== الواجبات ====================
+        function buildSurahGrid(containerId, searchId, inputId, optionClass) {
+            const grid = document.getElementById(containerId);
+            if (!grid) return;
+            grid.innerHTML = SURAHS.map((s, i) =>
+                `<div class="${optionClass}" onclick="selectSurah('${s}', this, '${optionClass}', '${inputId}', '${searchId}')" data-name="${s}">${s}</div>`
+            ).join('');
+        }
+
+        function filterSurahs(query, gridId) {
+            document.querySelectorAll(`#${gridId} div`).forEach(el => {
+                el.style.display = el.dataset.name.includes(query) ? '' : 'none';
+            });
+        }
+
+        function selectSurah(name, el, optionClass, inputId, searchId) {
+            document.querySelectorAll(`.${optionClass}`).forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById(inputId).value = name;
+            document.getElementById(searchId).value = name;
+        }
+
+        function setupTypeButtons(radioname) {
+            document.querySelectorAll(`input[name="${radioname}"]`).forEach(radio => {
+                radio.addEventListener('change', function () {
+                    document.querySelectorAll(`input[name="${radioname}"]`).forEach(r => {
+                        r.closest('label').classList.toggle('btn-primary', r.checked);
+                        r.closest('label').classList.toggle('btn-outline', !r.checked);
+                        if (r.checked) r.closest('label').style.color = '#fff';
+                        else r.closest('label').style.color = '';
+                    });
+                });
+            });
+            // Set initial state
+            const checked = document.querySelector(`input[name="${radioname}"]:checked`);
+            if (checked) {
+                checked.closest('label').classList.add('btn-primary');
+                checked.closest('label').classList.remove('btn-outline');
+                checked.closest('label').style.color = '#fff';
+            }
+        }
+
+        // Assign form
+        document.getElementById('assignForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const type = document.querySelector('input[name="assignType"]:checked')?.value || 'حفظ';
+            const surah = document.getElementById('assignSurah').value;
+
+            if (!surah) {
+                showToast('يرجى اختيار السورة', 'error');
+                return;
+            }
+
+            try {
+                const data = await apiPost('add_assignment', {
+                    student_id: document.getElementById('assignStudent').value,
+                    surah_name: surah,
+                    from_ayah: document.getElementById('assignFrom').value,
+                    to_ayah: document.getElementById('assignTo').value,
+                    type: type,
+                    due_date: document.getElementById('assignDue').value,
+                    notes: document.getElementById('assignNotes').value
+                });
+
+                if (data.success) {
+                    document.getElementById('assignForm').reset();
+                    document.querySelectorAll('.surah-option').forEach(e => e.classList.remove('selected'));
+                    document.getElementById('assignSurah').value = '';
+                    loadDashboard();
+                    broadcastSync('assignment_added');
+
+                    // الانتقال للوحة التحكم وإظهار رسالة النجاح
+                    switchPage('Dashboard', document.querySelector('[data-page="pageDashboard"]'));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    showToast('تم إسناد الواجب بنجاح', 'success');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        });
+
+        async function deleteAssignment(id) {
+            if (!confirm('هل تريد حذف هذا الواجب؟')) return;
+            try {
+                const data = await apiPost('delete_assignment', { id });
+                if (data.success) {
+                    showToast('تم حذف الواجب', 'info');
+                    loadDashboard();
+                    broadcastSync('assignment_deleted');
+                }
+            } catch (e) { }
+        }
+
+        // Edit Assignment
+        function openEditAssignmentModal(assignment) {
+            document.getElementById('editAssignmentId').value = assignment.id;
+            document.getElementById('editAssignSurah').value = assignment.surah_name;
+            document.getElementById('editAssignSurahSearch').value = assignment.surah_name;
+            document.getElementById('editAssignFrom').value = assignment.from_ayah;
+            document.getElementById('editAssignTo').value = assignment.to_ayah;
+            if (assignment.due_date) document.getElementById('editAssignDue').value = assignment.due_date;
+            document.getElementById('editAssignNotes').value = assignment.notes || '';
+
+            // Set Surah Grid
+            document.querySelectorAll('.edit-surah-option').forEach(e => {
+                e.classList.toggle('selected', e.dataset.name === assignment.surah_name);
+            });
+
+            // Set type
+            const typeRadio = document.querySelector(`input[name="editAssignType"][value="${assignment.type}"]`);
+            if (typeRadio) {
+                typeRadio.checked = true;
+                const event = new Event('change');
+                typeRadio.dispatchEvent(event);
+            }
+
+            document.getElementById('editAssignmentModal').classList.add('show');
+        }
+
+        document.getElementById('editAssignmentForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const surah = document.getElementById('editAssignSurah').value;
+            if (!surah) { showToast('يرجى اختيار السورة', 'error'); return; }
+
+            try {
+                const data = await apiPost('edit_assignment', {
+                    id: document.getElementById('editAssignmentId').value,
+                    surah_name: surah,
+                    from_ayah: document.getElementById('editAssignFrom').value,
+                    to_ayah: document.getElementById('editAssignTo').value,
+                    type: document.querySelector('input[name="editAssignType"]:checked')?.value || 'حفظ',
+                    due_date: document.getElementById('editAssignDue').value,
+                    notes: document.getElementById('editAssignNotes').value
+                });
+
+                if (data.success) {
+                    showToast('تم تعديل الواجب بنجاح', 'success');
+                    closeModal('editAssignmentModal');
+                    loadDashboard();
+                    broadcastSync('assignment_edited');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        });
+
+        // ==================== التسميع ====================
+        function openReviewModal(id, name, surah, type, from, to) {
+            document.getElementById('reviewAssignmentId').value = id;
+            document.getElementById('reviewDetails').innerHTML = `
+            <div class="glass-card" style="background:var(--bg-main);">
+                <div style="font-weight:700; font-size:1rem; margin-bottom:4px;">${name}</div>
+                <div style="font-size:0.9rem;">سورة ${surah} (${from} - ${to})</div>
+                <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">نوع: ${type}</div>
+            </div>
+        `;
+            document.getElementById('reviewPoints').value = type === 'حفظ' ? 15 : type === 'مراجعة' ? 10 : 5;
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        async function submitReview() {
+            const id = document.getElementById('reviewAssignmentId').value;
+            const points = document.getElementById('reviewPoints').value;
+            try {
+                const data = await apiPost('review_assignment', { id, points });
+                if (data.success) {
+                    closeModal('reviewModal');
+                    showPointsPopup('+' + points + ' ⭐');
+                    showToast('تم التسميع بنجاح! +' + points + ' نقطة', 'success');
+                    loadDashboard();
+                    broadcastSync('assignment_reviewed');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        }
+
+        // ==================== لوحة الصدارة ====================
+        async function loadLeaderboard() {
+            try {
+                const data = await apiGet('get_leaderboard');
+                if (!data.leaderboard) return;
+
+                const container = document.getElementById('leaderboardList');
+                if (!data.leaderboard.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><h3>لا توجد بيانات</h3></div>';
+                    return;
+                }
+
+                container.innerHTML = data.leaderboard.map((s, i) => {
+                    const rankClass = i < 3 ? `rank-${i + 1}` : 'rank-other';
+                    const trophy = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                    return `
+                    <div class="glass-card leaderboard-item">
+                        <div class="rank ${rankClass}">${trophy}</div>
+                        <div class="student-avatar" style="background:${s.avatar_color}; width:40px; height:40px; font-size:1rem;">${s.name.charAt(0)}</div>
+                        <div class="lb-info">
+                            <h4>${s.name}</h4>
+                            <div class="streak">${s.streak_days > 0 ? '🔥 ' + s.streak_days + ' يوم' : '📊 ' + s.completed_count + ' واجب مُنجز'}</div>
+                        </div>
+                        <div class="lb-points">⭐ ${s.points}</div>
+                    </div>
+                `;
+                }).join('');
+            } catch (e) {
+                console.error('Leaderboard error:', e);
+            }
+        }
+
+        // ==================== الحساب والأمان ====================
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('changePasswordModal').classList.add('show');
+        }
+
+        document.getElementById('changePasswordForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                const data = await apiPost('change_password', {
+                    old_password: document.getElementById('oldPassword').value,
+                    new_password: document.getElementById('newPassword').value
+                });
+                if (data.success) {
+                    showToast('تم تغيير كلمة المرور بنجاح', 'success');
+                    closeModal('changePasswordModal');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showToast('فشل الاتصال', 'error');
+            }
+        });
+
+        // ==================== دوال مساعدة ====================
+        function buildColorGrid(containerId = 'colorGrid', inputId = 'studentColor') {
+            const grid = document.getElementById(containerId);
+            if (!grid) return;
+            grid.innerHTML = AVATAR_COLORS.map((c, i) =>
+                `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background:${c}" onclick="selectColor('${c}', this, '${containerId}', '${inputId}')"></div>`
+            ).join('');
+        }
+
+        function selectColor(color, el, containerId, inputId) {
+            document.querySelectorAll(`#${containerId} .color-option`).forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById(inputId).value = color;
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // Dropdown toggle
+        function toggleDropdown(event) {
+            event.stopPropagation();
+            document.getElementById("userDropdown").classList.toggle("show");
+        }
+
+        // Close dropdown if clicked outside
+        window.onclick = function (event) {
+            if (!event.target.matches('#dropdownBtn')) {
+                var dropdowns = document.getElementsByClassName("header-dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Close modal on backdrop click
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            m.addEventListener('click', function (e) {
+                if (e.target === this) this.classList.remove('show');
+            });
+        });
+
+        function showPointsPopup(text) {
+            const popup = document.createElement('div');
+            popup.className = 'points-popup';
+            popup.textContent = text;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1500);
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 60000);
+            if (diff < 1) return 'الآن';
+            if (diff < 60) return `منذ ${diff} دقيقة`;
+            if (diff < 1440) return `منذ ${Math.floor(diff / 60)} ساعة`;
+            return date.toLocaleDateString('ar');
+        }
+
+        async function logout() {
+            try { await apiGet('logout'); } catch (e) { }
+            localStorage.removeItem('tadarus_user');
+            window.location.href = 'index.html';
+        }
+
+        // PWA Install
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwaBanner').classList.add('show');
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(choice => {
+                    if (choice.outcome === 'accepted') showToast('تم تثبيت التطبيق!', 'success');
+                    deferredPrompt = null;
+                    closePwaBanner();
+                });
+            }
+        }
+
+        function closePwaBanner() {
+            document.getElementById('pwaBanner').classList.remove('show');
+        }
+
+        // Online/Offline status
+        function updateOnlineStatus() {
+            // Indicator removed
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // Register SW
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW error:', e));
+        }
+    </script>
+</body>
+
+</html>

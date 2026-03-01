@@ -1,0 +1,16 @@
+# إعدادات قاعدة البيانات السرية
+config.php
+
+# ملفات النظام والمخلفات
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ملفات المحررات وبيئات التطوير
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# لا تتجاهل ملف الإعدادات كمثال
+!config.example.php

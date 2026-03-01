@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#042f2e">
+    <meta name="description" content="تدارس - واجهة الابن">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>تدارس - واجباتي</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-toast-container" id="toastContainer"></div>
+
+    <div class="app-shell">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="header-user">
+                    <div class="user-avatar" id="userAvatar">ا</div>
+                    <div class="user-info">
+                        <h2 id="userName">الابن</h2>
+                        <span>الابن</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">خروج ←</button>
+            </div>
+            <div class="stats-row">
+                <div class="stat-pill">
+                    <span class="number" id="statPoints">0</span>
+                    <span class="label">⭐ نقاط</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="number" id="statPending">0</span>
+                    <span class="label">⏳ بانتظار</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="number" id="statDone">0</span>
+                    <span class="label">✅ مُنجز</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="number" id="statStreak">0</span>
+                    <span class="label">🔥 أيام</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- PWA Banner -->
+            <div class="pwa-banner" id="pwaBanner">
+                <p>📲 ثبّت التطبيق على جهازك!</p>
+                <button class="btn-install" onclick="installPWA()">تثبيت</button>
+                <button class="btn-close-banner" onclick="closePwaBanner()">✕</button>
+            </div>
+
+            <!-- Page: My Assignments -->
+            <div class="page active" id="pageAssignments">
+                <!-- Progress Card -->
+                <div class="glass-card" id="progressCard"
+                    style="background:linear-gradient(135deg, rgba(13,148,136,0.05), rgba(212,168,67,0.05)); border:none;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-weight:700;">📊 تقدمي</span>
+                        <span style="font-size:0.85rem; color:var(--text-secondary);" id="progressText">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <h3 class="section-title"><span class="icon">⏳</span> الواجبات المطلوبة</h3>
+                <div id="pendingAssignments"></div>
+
+                <h3 class="section-title" style="margin-top:24px"><span class="icon">✋</span> بانتظار التسميع</h3>
+                <div id="waitingAssignments"></div>
+
+                <h3 class="section-title" style="margin-top:24px"><span class="icon">✅</span> المُنجز</h3>
+                <div id="completedAssignments"></div>
+            </div>
+
+            <!-- Page: Leaderboard -->
+            <div class="page" id="pageLeaderboard">
+                <h3 class="section-title"><span class="icon">🏆</span> لوحة الصدارة</h3>
+                <div id="leaderboardList"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchPage('Assignments', this)" data-page="pageAssignments">
+                <span class="nav-icon">📋</span>
+                <span>واجباتي</span>
+                <span class="badge" id="badgePending" style="display:none;">0</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('Leaderboard', this)" data-page="pageLeaderboard">
+                <span class="nav-icon">🏆</span>
+                <span>الصدارة</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let currentUser = null;
+
+        // ==================== التهيئة ====================
+        (async function init() {
+            currentUser = JSON.parse(localStorage.getItem('tadarus_user'));
+            if (!currentUser || currentUser.role !== 'student') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // تحديث الهيدر
+            document.getElementById('userName').textContent = 'الابن';
+            document.getElementById('userAvatar').textContent = 'ا';
+            document.getElementById('userAvatar').style.background = currentUser.avatar_color || '#0d9488';
+
+            await loadData();
+            initSync();
+            updateOnlineStatus();
+
+            // Listen for sync updates
+            if (typeof onSyncMessage === 'function') {
+                window.addEventListener('sync-update', () => loadData());
+            }
+        })();
+
+        // ==================== تحميل البيانات ====================
+        async function loadData() {
+            try {
+                const [statsRes, assignRes] = await Promise.all([
+                    apiGet('get_stats'),
+                    apiGet('get_assignments')
+                ]);
+
+                if (statsRes.stats) {
+                    document.getElementById('statPoints').textContent = statsRes.stats.points;
+                    document.getElementById('statPending').textContent = statsRes.stats.pending;
+                    document.getElementById('statDone').textContent = statsRes.stats.completed;
+                    document.getElementById('statStreak').textContent = statsRes.stats.streak_days;
+
+                    // Progress
+                    const total = statsRes.stats.pending + statsRes.stats.completed + statsRes.stats.waiting_review;
+                    const done = statsRes.stats.completed;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    document.getElementById('progressFill').style.width = pct + '%';
+                    document.getElementById('progressText').textContent = pct + '%';
+
+                    // Badge
+                    const badge = document.getElementById('badgePending');
+                    if (statsRes.stats.pending > 0) {
+                        badge.textContent = statsRes.stats.pending;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                if (assignRes.assignments) {
+                    const pending = assignRes.assignments.filter(a => a.status === 'pending');
+                    const waiting = assignRes.assignments.filter(a => a.status === 'done');
+                    const completed = assignRes.assignments.filter(a => a.status === 'reviewed');
+                    renderStudentAssignments('pendingAssignments', pending, true);
+                    renderStudentAssignments('waitingAssignments', waiting, false);
+                    renderStudentAssignments('completedAssignments', completed.slice(0, 10), false);
+
+                    // Cache for offline
+                    localStorage.setItem('tadarus_assignments', JSON.stringify(assignRes.assignments));
+                }
+            } catch (e) {
+                // Load from cache
+                const cached = localStorage.getItem('tadarus_assignments');
+                if (cached) {
+                    const assignments = JSON.parse(cached);
+                    renderStudentAssignments('pendingAssignments', assignments.filter(a => a.status === 'pending'), true);
+                    renderStudentAssignments('waitingAssignments', assignments.filter(a => a.status === 'done'), false);
+                    renderStudentAssignments('completedAssignments', assignments.filter(a => a.status === 'reviewed').slice(0, 10), false);
+                }
+            }
+        }
+
+        function renderStudentAssignments(containerId, assignments, canComplete) {
+            const container = document.getElementById(containerId);
+            if (!assignments.length) {
+                const msgs = {
+                    'pendingAssignments': { icon: '🎉', title: 'لا توجد واجبات', text: 'أحسنت! أنجزت كل شيء' },
+                    'waitingAssignments': { icon: '✨', title: 'لا شيء بالانتظار', text: '' },
+                    'completedAssignments': { icon: '📖', title: 'لا يوجد منجز بعد', text: 'ابدأ بإنجاز واجباتك!' }
+                };
+                const msg = msgs[containerId] || { icon: '📋', title: 'فارغ', text: '' };
+                container.innerHTML = `<div class="empty-state"><div class="icon">${msg.icon}</div><h3>${msg.title}</h3><p>${msg.text}</p></div>`;
+                return;
+            }
+
+            container.innerHTML = assignments.map(a => `
+            <div class="glass-card assignment-card type-${a.type}">
+                <div class="assignment-header">
+                    <div>
+                        <div class="assignment-surah">سورة ${a.surah_name}</div>
+                        <div class="assignment-ayah">الآيات ${a.from_ayah} - ${a.to_ayah}</div>
+                    </div>
+                    <span class="assignment-type">${a.type}</span>
+                </div>
+                ${a.notes ? `<div class="assignment-meta">📝 ${a.notes}</div>` : ''}
+                ${a.due_date ? `<div class="assignment-meta">📅 التسليم: ${new Date(a.due_date).toLocaleDateString('ar')}</div>` : ''}
+                ${a.status === 'reviewed' && a.points_awarded ? `<div style="margin-top:8px; font-size:0.9rem; color:var(--secondary); font-weight:700;">⭐ +${a.points_awarded} نقطة</div>` : ''}
+                ${canComplete ? `
+                    <div class="assignment-actions">
+                        <button class="btn btn-success btn-sm btn-block" onclick="completeAssignment(${a.id})">
+                            ✅ أنجزت هذا الواجب
+                        </button>
+                    </div>
+                ` : ''}
+                ${a.status === 'done' ? `<div style="margin-top:8px; font-size:0.85rem; color:var(--primary);">✋ بانتظار تسميع ولي الأمر...</div>` : ''}
+            </div>
+        `).join('');
+        }
+
+        // ==================== إنجاز الواجب ====================
+        async function completeAssignment(id) {
+            try {
+                const data = await apiPost('complete_assignment', { id });
+                if (data.success) {
+                    showToast('تم إنجاز الواجب! بانتظار التسميع', 'success');
+                    loadData();
+                    broadcastSync('assignment_completed');
+                } else {
+                    showToast(data.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                // Queue for later sync
+                let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+                queue.push({ action: 'complete_assignment', data: { id }, timestamp: Date.now() });
+                localStorage.setItem('tadarus_offline_queue', JSON.stringify(queue));
+                showToast('سيتم المزامنة عند عودة الاتصال', 'info');
+            }
+        }
+
+        // ==================== لوحة الصدارة ====================
+        async function loadLeaderboard() {
+            try {
+                const data = await apiGet('get_leaderboard');
+                if (!data.leaderboard) return;
+
+                const container = document.getElementById('leaderboardList');
+                if (!data.leaderboard.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><h3>لا توجد بيانات</h3></div>';
+                    return;
+                }
+
+                container.innerHTML = data.leaderboard.map((s, i) => {
+                    const rankClass = i < 3 ? `rank-${i + 1}` : 'rank-other';
+                    const trophy = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                    const isMe = s.id == currentUser.id;
+                    return `
+                    <div class="glass-card leaderboard-item" style="${isMe ? 'border:2px solid var(--primary); background:rgba(13,148,136,0.05);' : ''}">
+                        <div class="rank ${rankClass}">${trophy}</div>
+                        <div class="student-avatar" style="background:${s.avatar_color}; width:40px; height:40px; font-size:1rem;">${s.name.charAt(0)}</div>
+                        <div class="lb-info">
+                            <h4>${s.name} ${isMe ? '(أنا)' : ''}</h4>
+                            <div class="streak">${s.streak_days > 0 ? '🔥 ' + s.streak_days + ' يوم' : '📊 ' + s.completed_count + ' واجب'}</div>
+                        </div>
+                        <div class="lb-points">⭐ ${s.points}</div>
+                    </div>
+                `;
+                }).join('');
+            } catch (e) { }
+        }
+
+        // ==================== التنقل ====================
+        function switchPage(name, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page' + name).classList.add('active');
+            btn.classList.add('active');
+            if (name === 'Leaderboard') loadLeaderboard();
+            if (name === 'Assignments') loadData();
+        }
+
+        // ==================== دوال عامة ====================
+        async function logout() {
+            try { await apiGet('logout'); } catch (e) { }
+            localStorage.removeItem('tadarus_user');
+            window.location.href = 'index.html';
+        }
+
+        // PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwaBanner').classList.add('show');
+        });
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; closePwaBanner(); });
+            }
+        }
+        function closePwaBanner() { document.getElementById('pwaBanner').classList.remove('show'); }
+
+        function updateOnlineStatus() {
+            // Indicator removed
+        }
+        window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineQueue(); loadData(); });
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // Sync offline queue
+        async function syncOfflineQueue() {
+            let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+            if (!queue.length) return;
+            for (const item of queue) {
+                try {
+                    await apiPost(item.action, item.data);
+                } catch (e) { return; }
+            }
+            localStorage.setItem('tadarus_offline_queue', '[]');
+            showToast('تمت المزامنة بنجاح', 'success');
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW:', e));
+        }
+    </script>
+</body>
+
+</html>

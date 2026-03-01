@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#042f2e">
+    <meta name="description" content="تدارس - لوحة الصدارة">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>تدارس - لوحة الصدارة</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .lb-header {
+            text-align: center;
+            padding: 40px 20px 30px;
+            background: linear-gradient(135deg, var(--bg-dark), var(--primary-dark));
+            color: #fff;
+        }
+
+        .lb-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+
+        .lb-header p {
+            opacity: 0.7;
+            font-size: 0.95rem;
+        }
+
+        .lb-trophy {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .podium {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 20px 20px;
+            background: linear-gradient(180deg, var(--primary-dark), transparent);
+        }
+
+        .podium-item {
+            text-align: center;
+            flex: 1;
+            max-width: 120px;
+        }
+
+        .podium-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .podium-item:nth-child(2) .podium-avatar {
+            width: 70px;
+            height: 70px;
+            font-size: 1.5rem;
+            border-color: #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+
+        .podium-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .podium-points {
+            color: var(--secondary-light);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .podium-rank {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+
+        .podium-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px 12px 0 0;
+            padding: 12px 4px 8px;
+            margin-top: 8px;
+        }
+
+        .podium-item:nth-child(2) .podium-bar {
+            min-height: 100px;
+        }
+
+        .podium-item:nth-child(1) .podium-bar,
+        .podium-item:nth-child(3) .podium-bar {
+            min-height: 70px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 10px 20px;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="lb-header">
+        <a href="javascript:history.back()" class="back-btn">→ رجوع</a>
+        <span class="lb-trophy">🏆</span>
+        <h1>لوحة الصدارة</h1>
+        <p>من أكثر أفراد الأسرة تحفيظاً؟</p>
+    </div>
+
+    <!-- Podium for top 3 -->
+    <div class="podium" id="podium"></div>
+
+    <div class="content-area" style="padding-bottom:40px;">
+        <h3 class="section-title"><span class="icon">📊</span> الترتيب الكامل</h3>
+        <div id="fullLeaderboard"></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        (async function () {
+            try {
+                const data = await apiGet('get_leaderboard');
+                if (!data.leaderboard || !data.leaderboard.length) {
+                    document.getElementById('fullLeaderboard').innerHTML =
+                        '<div class="empty-state"><div class="icon">🏆</div><h3>لا توجد بيانات بعد</h3><p>ابدأ بإسناد الواجبات لظهور النتائج</p></div>';
+                    return;
+                }
+
+                const lb = data.leaderboard;
+
+                // Podium (top 3)
+                if (lb.length >= 1) {
+                    const podiumOrder = lb.length >= 3 ? [lb[1], lb[0], lb[2]] : lb.length >= 2 ? [lb[1], lb[0]] : [lb[0]];
+                    const ranks = lb.length >= 3 ? ['🥈', '🥇', '🥉'] : lb.length >= 2 ? ['🥈', '🥇'] : ['🥇'];
+
+                    document.getElementById('podium').innerHTML = podiumOrder.map((s, i) => `
+                    <div class="podium-item">
+                        <div class="podium-rank">${ranks[i]}</div>
+                        <div class="podium-avatar" style="background:${s.avatar_color}">${s.name.charAt(0)}</div>
+                        <div class="podium-name">${s.name}</div>
+                        <div class="podium-bar">
+                            <div class="podium-points">⭐ ${s.points}</div>
+                        </div>
+                    </div>
+                `).join('');
+                }
+
+                // Full list
+                document.getElementById('fullLeaderboard').innerHTML = lb.map((s, i) => {
+                    const rankClass = i < 3 ? `rank-${i + 1}` : 'rank-other';
+                    const trophy = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                    return `
+                    <div class="glass-card leaderboard-item">
+                        <div class="rank ${rankClass}">${trophy}</div>
+                        <div class="student-avatar" style="background:${s.avatar_color}; width:40px; height:40px; font-size:1rem;">${s.name.charAt(0)}</div>
+                        <div class="lb-info">
+                            <h4>${s.name}</h4>
+                            <div class="streak">
+                                ${s.streak_days > 0 ? '🔥 ' + s.streak_days + ' يوم متواصل' : ''}
+                                📊 ${s.completed_count} واجب مُنجز
+                            </div>
+                        </div>
+                        <div class="lb-points">⭐ ${s.points}</div>
+                    </div>
+                `;
+                }).join('');
+            } catch (e) {
+                document.getElementById('fullLeaderboard').innerHTML =
+                    '<div class="empty-state"><p>تعذر تحميل البيانات</p></div>';
+            }
+        })();
+    </script>
+</body>
+
+</html>
