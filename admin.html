@@ -369,7 +369,7 @@
 
         // ==================== التهيئة ====================
         (async function init() {
-            currentUser = JSON.parse(localStorage.getItem('tadarus_user'));
+            currentUser = JSON.parse(localStorage.getItem('family_halqat_user'));
             if (!currentUser || currentUser.role !== 'admin') {
                 window.location.href = 'index.html';
                 return;
@@ -942,7 +942,7 @@
 
         async function logout() {
             try { await apiGet('logout'); } catch (e) { }
-            localStorage.removeItem('tadarus_user');
+            localStorage.removeItem('family_halqat_user');
             window.location.href = 'index.html';
         }
 

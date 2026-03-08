@@ -1,9 +1,9 @@
 /**
- * Tadarus - Service Worker
+ * الحلقات الأسرية - Service Worker
  * Cache-first for static assets, Network-first for API
  */
 
-const CACHE_NAME = 'tadarus-v1';
+const CACHE_NAME = 'family-halqat-v1';
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -122,7 +122,7 @@ async function networkFirst(request) {
 
 // Background sync
 self.addEventListener('sync', (event) => {
-    if (event.tag === 'tadarus-sync') {
+    if (event.tag === 'family-halqat-sync') {
         event.waitUntil(doBackgroundSync());
     }
 });

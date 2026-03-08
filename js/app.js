@@ -1,5 +1,5 @@
 /**
- * Tadarus - Main App Module
+ * الحلقات الأسرية - Main App Module
  * Shared functionality across pages
  */
 

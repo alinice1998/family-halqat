@@ -1,6 +1,6 @@
 <?php
 /**
- * Tadarus API - واجهة برمجة التطبيق
+ * الحلقات الأسرية API - واجهة برمجة التطبيق
  */
 require_once __DIR__ . '/config.php';
 

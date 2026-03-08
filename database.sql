@@ -1,10 +1,10 @@
 -- =============================================
--- Tadarus - حلقة تحفيظ القرآن الأسرية
+-- الحلقات الأسرية - حلقة تحفيظ القرآن الأسرية
 -- Database Schema
 -- =============================================
 
-CREATE DATABASE IF NOT EXISTS `tadarus_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `tadarus_db`;
+CREATE DATABASE IF NOT EXISTS `family_halqat_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `family_halqat_db`;
 
 -- جدول المستخدمين
 CREATE TABLE IF NOT EXISTS `users` (

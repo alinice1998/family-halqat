@@ -1,5 +1,5 @@
 /**
- * Tadarus - API Client Module
+ * الحلقات الأسرية - API Client Module
  * Handles all server communication with offline fallback
  */
 
@@ -11,23 +11,23 @@ const API_BASE = 'api.php';
 async function apiGet(action, params = {}) {
     const query = new URLSearchParams({ action, ...params }).toString();
     const url = `${API_BASE}?${query}`;
-    
+
     try {
         const res = await fetch(url, {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' }
         });
-        
+
         if (!res.ok) {
             const err = await res.json().catch(() => ({ error: 'خطأ في الخادم' }));
             throw new Error(err.error || `HTTP ${res.status}`);
         }
-        
+
         const data = await res.json();
-        
+
         // Cache response for offline use
         cacheResponse(action, params, data);
-        
+
         return data;
     } catch (err) {
         // Try cached response
@@ -42,7 +42,7 @@ async function apiGet(action, params = {}) {
  */
 async function apiPost(action, body = {}) {
     const url = `${API_BASE}?action=${action}`;
-    
+
     try {
         const res = await fetch(url, {
             method: 'POST',
@@ -53,7 +53,7 @@ async function apiPost(action, body = {}) {
             },
             body: JSON.stringify(body)
         });
-        
+
         const data = await res.json();
         return data;
     } catch (err) {
@@ -71,13 +71,13 @@ async function apiPost(action, body = {}) {
  */
 function cacheResponse(action, params, data) {
     try {
-        const key = `tadarus_cache_${action}_${JSON.stringify(params)}`;
+        const key = `family_halqat_cache_${action}_${JSON.stringify(params)}`;
         const entry = {
             data: data,
             timestamp: Date.now()
         };
         localStorage.setItem(key, JSON.stringify(entry));
-    } catch(e) {
+    } catch (e) {
         // localStorage full - clear old entries
         clearOldCache();
     }
@@ -88,12 +88,12 @@ function cacheResponse(action, params, data) {
  */
 function getCachedResponse(action, params) {
     try {
-        const key = `tadarus_cache_${action}_${JSON.stringify(params)}`;
+        const key = `family_halqat_cache_${action}_${JSON.stringify(params)}`;
         const entry = JSON.parse(localStorage.getItem(key));
         if (entry && (Date.now() - entry.timestamp) < 3600000) { // 1 hour
             return entry.data;
         }
-    } catch(e) {}
+    } catch (e) { }
     return null;
 }
 
@@ -101,33 +101,33 @@ function getCachedResponse(action, params) {
  * Queue action for offline sync
  */
 function queueOfflineAction(action, body) {
-    let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+    let queue = JSON.parse(localStorage.getItem('family_halqat_offline_queue') || '[]');
     queue.push({
         action,
         data: body,
         timestamp: Date.now()
     });
-    localStorage.setItem('tadarus_offline_queue', JSON.stringify(queue));
+    localStorage.setItem('family_halqat_offline_queue', JSON.stringify(queue));
 }
 
 /**
  * Process offline queue when back online
  */
 async function processOfflineQueue() {
-    let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+    let queue = JSON.parse(localStorage.getItem('family_halqat_offline_queue') || '[]');
     if (!queue.length) return;
-    
+
     const failed = [];
     for (const item of queue) {
         try {
             await apiPost(item.action, item.data);
-        } catch(e) {
+        } catch (e) {
             failed.push(item);
         }
     }
-    
-    localStorage.setItem('tadarus_offline_queue', JSON.stringify(failed));
-    
+
+    localStorage.setItem('family_halqat_offline_queue', JSON.stringify(failed));
+
     if (failed.length === 0 && queue.length > 0) {
         showToast('تمت مزامنة جميع العمليات المعلقة ✅', 'success');
     }
@@ -140,7 +140,7 @@ function clearOldCache() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('tadarus_cache_')) {
+        if (key.startsWith('family_halqat_cache_')) {
             keys.push(key);
         }
     }

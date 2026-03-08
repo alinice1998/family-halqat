@@ -1,5 +1,5 @@
 /**
- * Tadarus - Sync Module
+ * الحلقات الأسرية - Sync Module
  * BroadcastChannel for same-device sync + WebRTC DataChannel for peer-to-peer
  */
 
@@ -9,7 +9,7 @@ let syncChannel = null;
 function initSync() {
     // BroadcastChannel for tabs on same device
     try {
-        syncChannel = new BroadcastChannel('tadarus_sync');
+        syncChannel = new BroadcastChannel('family_halqat_sync');
         syncChannel.onmessage = (event) => {
             handleSyncMessage(event.data);
         };
@@ -17,7 +17,7 @@ function initSync() {
         console.log('BroadcastChannel not supported, using localStorage fallback');
         // Fallback: listen to storage events
         window.addEventListener('storage', (e) => {
-            if (e.key === 'tadarus_sync_signal') {
+            if (e.key === 'family_halqat_sync_signal') {
                 try {
                     const data = JSON.parse(e.newValue);
                     handleSyncMessage(data);
@@ -47,7 +47,7 @@ function broadcastSync(type, payload = {}) {
 
     // localStorage fallback
     try {
-        localStorage.setItem('tadarus_sync_signal', JSON.stringify(message));
+        localStorage.setItem('family_halqat_sync_signal', JSON.stringify(message));
     } catch (e) { }
 
     // WebRTC
@@ -76,10 +76,10 @@ function handleSyncMessage(data) {
 }
 
 function getSenderId() {
-    let id = sessionStorage.getItem('tadarus_sender_id');
+    let id = sessionStorage.getItem('family_halqat_sender_id');
     if (!id) {
         id = 'device_' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem('tadarus_sender_id', id);
+        sessionStorage.setItem('family_halqat_sender_id', id);
     }
     return id;
 }
@@ -103,11 +103,11 @@ let isInitiator = false;
  */
 function initWebRTC() {
     // Use API for signaling exchange
-    const familyId = localStorage.getItem('tadarus_family_id');
+    const familyId = localStorage.getItem('family_halqat_family_id');
     if (!familyId) {
         // Generate a family ID for first time
         const newId = 'family_' + Math.random().toString(36).substr(2, 8);
-        localStorage.setItem('tadarus_family_id', newId);
+        localStorage.setItem('family_halqat_family_id', newId);
     }
 
     // Poll for signaling messages
@@ -170,7 +170,7 @@ async function initiateConnection() {
         createPeerConnection();
         isInitiator = true;
 
-        dataChannel = peerConnection.createDataChannel('tadarus_sync');
+        dataChannel = peerConnection.createDataChannel('family_halqat_sync');
         setupDataChannel();
 
         const offer = await peerConnection.createOffer();
@@ -278,23 +278,23 @@ function sendSignal(data) {
     };
 
     try {
-        let signals = JSON.parse(localStorage.getItem('tadarus_signals') || '[]');
+        let signals = JSON.parse(localStorage.getItem('family_halqat_signals') || '[]');
         // Keep only recent signals (last 30 seconds)
         signals = signals.filter(s => Date.now() - s.timestamp < 30000);
         signals.push(signal);
-        localStorage.setItem('tadarus_signals', JSON.stringify(signals));
+        localStorage.setItem('family_halqat_signals', JSON.stringify(signals));
     } catch (e) { }
 }
 
 function getStoredSignals() {
     try {
-        let signals = JSON.parse(localStorage.getItem('tadarus_signals') || '[]');
+        let signals = JSON.parse(localStorage.getItem('family_halqat_signals') || '[]');
         // Only get signals from last 30 seconds that we haven't processed
-        const lastProcessed = parseInt(sessionStorage.getItem('tadarus_last_signal') || '0');
+        const lastProcessed = parseInt(sessionStorage.getItem('family_halqat_last_signal') || '0');
         const recent = signals.filter(s => s.timestamp > lastProcessed && s.sender !== getSenderId());
 
         if (recent.length > 0) {
-            sessionStorage.setItem('tadarus_last_signal', String(Date.now()));
+            sessionStorage.setItem('family_halqat_last_signal', String(Date.now()));
         }
 
         return recent;

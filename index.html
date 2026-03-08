@@ -86,12 +86,12 @@
                 const res = await fetch(`${API_URL}?action=check_auth`);
                 const data = await res.json();
                 if (data.authenticated && data.user) {
-                    localStorage.setItem('tadarus_user', JSON.stringify(data.user));
+                    localStorage.setItem('family_halqat_user', JSON.stringify(data.user));
                     redirectByRole(data.user.role);
                 }
             } catch (e) {
                 // Check localStorage for offline
-                const cached = localStorage.getItem('tadarus_user');
+                const cached = localStorage.getItem('family_halqat_user');
                 if (cached) {
                     const user = JSON.parse(cached);
                     redirectByRole(user.role);
@@ -127,8 +127,8 @@
                 const data = await res.json();
 
                 if (data.success && data.user) {
-                    localStorage.setItem('tadarus_user', JSON.stringify(data.user));
-                    localStorage.setItem('tadarus_last_sync', new Date().toISOString());
+                    localStorage.setItem('family_halqat_user', JSON.stringify(data.user));
+                    localStorage.setItem('family_halqat_last_sync', new Date().toISOString());
                     redirectByRole(data.user.role);
                 } else {
                     errorEl.textContent = data.error || 'خطأ في تسجيل الدخول';
@@ -189,8 +189,8 @@
                     const authRes = await fetch(`${API_URL}?action=check_auth`);
                     const authData = await authRes.json();
                     if (authData.authenticated) {
-                        localStorage.setItem('tadarus_user', JSON.stringify(authData.user));
-                        localStorage.setItem('tadarus_last_sync', new Date().toISOString());
+                        localStorage.setItem('family_halqat_user', JSON.stringify(authData.user));
+                        localStorage.setItem('family_halqat_last_sync', new Date().toISOString());
                         redirectByRole(authData.user.role);
                     } else {
                         window.location.href = 'admin.html';

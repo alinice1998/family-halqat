@@ -111,7 +111,7 @@
 
         // ==================== التهيئة ====================
         (async function init() {
-            currentUser = JSON.parse(localStorage.getItem('tadarus_user'));
+            currentUser = JSON.parse(localStorage.getItem('family_halqat_user'));
             if (!currentUser || currentUser.role !== 'student') {
                 window.location.href = 'index.html';
                 return;
@@ -172,11 +172,11 @@
                     renderStudentAssignments('completedAssignments', completed.slice(0, 10), false);
 
                     // Cache for offline
-                    localStorage.setItem('tadarus_assignments', JSON.stringify(assignRes.assignments));
+                    localStorage.setItem('family_halqat_assignments', JSON.stringify(assignRes.assignments));
                 }
             } catch (e) {
                 // Load from cache
-                const cached = localStorage.getItem('tadarus_assignments');
+                const cached = localStorage.getItem('family_halqat_assignments');
                 if (cached) {
                     const assignments = JSON.parse(cached);
                     renderStudentAssignments('pendingAssignments', assignments.filter(a => a.status === 'pending'), true);
@@ -236,9 +236,9 @@
                 }
             } catch (e) {
                 // Queue for later sync
-                let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+                let queue = JSON.parse(localStorage.getItem('family_halqat_offline_queue') || '[]');
                 queue.push({ action: 'complete_assignment', data: { id }, timestamp: Date.now() });
-                localStorage.setItem('tadarus_offline_queue', JSON.stringify(queue));
+                localStorage.setItem('family_halqat_offline_queue', JSON.stringify(queue));
                 showToast('سيتم المزامنة عند عودة الاتصال', 'info');
             }
         }
@@ -287,7 +287,7 @@
         // ==================== دوال عامة ====================
         async function logout() {
             try { await apiGet('logout'); } catch (e) { }
-            localStorage.removeItem('tadarus_user');
+            localStorage.removeItem('family_halqat_user');
             window.location.href = 'index.html';
         }
 
@@ -314,14 +314,14 @@
 
         // Sync offline queue
         async function syncOfflineQueue() {
-            let queue = JSON.parse(localStorage.getItem('tadarus_offline_queue') || '[]');
+            let queue = JSON.parse(localStorage.getItem('family_halqat_offline_queue') || '[]');
             if (!queue.length) return;
             for (const item of queue) {
                 try {
                     await apiPost(item.action, item.data);
                 } catch (e) { return; }
             }
-            localStorage.setItem('tadarus_offline_queue', '[]');
+            localStorage.setItem('family_halqat_offline_queue', '[]');
             showToast('تمت المزامنة بنجاح', 'success');
         }
 
